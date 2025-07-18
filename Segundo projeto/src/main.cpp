@@ -1,40 +1,64 @@
 #include <Arduino.h>
+#include <Adafruit_BMP280.h>
+#include <LiquidCrystal_I2C.h>
 
-#include <Bounce2.h>
-
-//cada botao precisa de um obj
-Bounce botao = Bounce();
+Adafruit_BMP280 bmp;
+LiquidCrystal_I2C lcd(0x27, 20, 4);
 
 void setup()
 {
-  // attach -> configurando o pino que o botao está conectado
-  botao.attach(23, INPUT_PULLUP);
-  botao.interval(30);
+  Serial.begin(9600);
+
+  if (!bmp.begin(0x76))
+  {
+    Serial.print("Deu ruim :(");
+  }
+
+  /* Default settings from datasheet. */
+  bmp.setSampling(Adafruit_BMP280::MODE_FORCED,     /* Operating Mode. */
+                  Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
+                  Adafruit_BMP280::SAMPLING_X16,    /* Pressure oversampling */
+                  Adafruit_BMP280::FILTER_X16,      /* Filtering. */
+                  Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
+
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(5, 0);
+  lcd.print("OLA MUNDO!");
+}
+
+void mozinho(int tempo)
+{
+  delay(tempo);
 }
 
 void loop()
 {
-  //sem o update, não funciona nada...
-  botao.update();
-  // rose -> verifica se o botao sofreu modifica;áo, ex: De 0 para 1
-  // botao clicado
-  if (botao.rose())
+  if (bmp.takeForcedMeasurement())
   {
+    // can now print out the new measurements
+    // F -> ARMAZENA NA MEMÓRIA FLASH E NAO RAM
+    
+    float temperatura = bmp.readTemperature();
+    float pressao = bmp.readPressure();
+    float altitude = bmp.readAltitude(1870);
+    
+    Serial.printf("Temperatura = %.2f", temperatura, "*C \n");
+    
+    Serial.printf("Pressão = %.0f", pressao, "*PA \n");
+    
+    Serial.printf("Altitude = %.2f", altitude, "m \n");
+    
+    
+    
+    lcd.setCursor(0, 2);
+    lcd.printf("Temp = %.2f*C", temperatura);
+    
+    lcd.setCursor(0, 3);
+    lcd.printf("Pressão = %.2f*PA", pressao);
+    
+    lcd.setCursor(0, 4);
+    lcd.printf("Altitude = %.2fm", altitude);
   }
-  // rose -> verifica se o botao sofreu modifica;áo, ex: De 1 para
-  // botao solto
-  if (botao.fell())
-  {
-
-  }
-
-  if(botao.changed()){
-    if(botao.read() == LOW){ //Botao pressionado
-
-    }
-  }
-
-  //currentDurante -> enquanto o botao esta sendo pressionado, vai retornar o quanto tempo está sendo.
-  //previousDurante -> enquanto o botao ficou pressionado, após ser solto.
-  unsigned long ultimaDuracao = botao.previousDuration();
+  mozinho(3000);
 }
